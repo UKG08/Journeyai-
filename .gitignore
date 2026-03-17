@@ -1,0 +1,23 @@
+# secrets
+.env
+ 
+# python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+ 
+# virtual environment
+venv/
+env/
+.venv/
+ 
+# IDE
+.vscode/
+.idea/
+ 
+# OS
+.DS_Store
+Thumbs.db
+ 
