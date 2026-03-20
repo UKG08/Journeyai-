@@ -2,6 +2,7 @@ import SkillsCard from '../components/SkillsCard'
 import ResumeWeakSpots from '../components/ResumeWeakSpots'
 import NextStepCard from '../components/NextStepCard'
 import RoadmapCard from '../components/RoadmapCard'
+import MentorChat from '../components/MentorChat'
 
 export default function OutputPage({ data, onReset }) {
 
@@ -16,8 +17,6 @@ export default function OutputPage({ data, onReset }) {
     )
   }
 
-  // normalize current_position_summary
-  // groq sometimes returns string sometimes object
   const positionSummary = typeof data.current_position_summary === 'string'
     ? {
         overview: data.current_position_summary,
@@ -27,7 +26,6 @@ export default function OutputPage({ data, onReset }) {
       }
     : data.current_position_summary || {}
 
-  // normalize resume_summary
   const resumeSummary = typeof data.resume_summary === 'string'
     ? {
         overall_impression: data.resume_summary,
@@ -83,7 +81,7 @@ export default function OutputPage({ data, onReset }) {
         </div>
       </div>
 
-      {/* position summary */}
+      {/* position overview */}
       {positionSummary?.overview && (
         <div className="bg-gray-50 rounded-xl p-4 mb-4">
           <p className="text-sm text-gray-700 leading-relaxed">
@@ -119,6 +117,9 @@ export default function OutputPage({ data, onReset }) {
           totalTime={data.estimated_total_time}
         />
       )}
+
+      {/* mentor chat */}
+      <MentorChat profile={data} />
 
       {/* share */}
       {shareUrl && (
