@@ -1,235 +1,520 @@
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
+import { C } from '../utils/colors'
+import { css } from '../animations/transitions'
 
-export default function InputPage({ onResult }) {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+const STEPS = [
+  {
+    waypoint: '01',
+    title:    'Where have you been?',
+    subtitle: 'Upload your resume and tell us your story so far',
+  },
+  {
+    waypoint: '02',
+    title:    'What have you discovered?',
+    subtitle: "Tell us what you've built or learned recently — even if it's not on your resume",
+  },
+  {
+    waypoint: '03',
+    title:    'Where do you want to go?',
+    subtitle: 'Set your destination and help us personalize your path',
+  },
+]
 
-  const [resume, setResume] = useState(null)
-  const [recentWork, setRecentWork] = useState('')
-  const [careerGoal, setCareerGoal] = useState('')
+export default function InputPage({ onLoading, onResult }) {
+  const [step,           setStep]           = useState(0)
+  const [error,          setError]          = useState(null)
+  const [dragOver,       setDragOver]       = useState(false)
+  const [resume,         setResume]         = useState(null)
+  const [recentWork,     setRecentWork]     = useState('')
+  const [careerGoal,     setCareerGoal]     = useState('')
   const [jobDescription, setJobDescription] = useState('')
-  const [hoursPerDay, setHoursPerDay] = useState('')
-  const [struggle, setStruggle] = useState('')
-  const [background, setBackground] = useState('')
+  const [hoursPerDay,    setHoursPerDay]    = useState('')
+  const [struggle,       setStruggle]       = useState('')
+  const [background,     setBackground]     = useState('')
+  const [githubUrl,      setGithubUrl]      = useState('')
 
-  async function handleSubmit(e) {
+  function handleDrop(e) {
     e.preventDefault()
+    setDragOver(false)
+    const file = e.dataTransfer.files[0]
+    if (file && file.type === 'application/pdf') setResume(file)
+  }
+
+  function next() {
+    if (step === 0 && !resume)          return setError('Please upload your resume PDF')
+    if (step === 1 && !recentWork.trim()) return setError('Please describe your recent work')
     setError(null)
+    setStep(s => s + 1)
+  }
 
-    if (!resume) return setError('Please upload your resume PDF')
-    if (!recentWork) return setError('Please describe your recent work')
-    if (!careerGoal) return setError('Please enter your career goal')
+  function prev() {
+    setError(null)
+    setStep(s => s - 1)
+  }
 
-    setLoading(true)
+  async function handleSubmit() {
+    if (!careerGoal.trim()) return setError('Please enter your career goal')
+    setError(null)
+    onLoading()
 
     try {
-      const formData = new FormData()
-      formData.append('resume', resume)
-      formData.append('recent_work', recentWork)
-      formData.append('career_goal', careerGoal)
-      formData.append('hours_per_day', hoursPerDay || '1-2 hours')
-      formData.append('struggle', struggle || 'nothing specific')
-      formData.append('background', background || 'not specified')
-      if (jobDescription) {
-        formData.append('job_description', jobDescription)
-      }
+      const form = new FormData()
+      form.append('resume',          resume)
+      form.append('recent_work',     recentWork)
+      form.append('career_goal',     careerGoal)
+      form.append('hours_per_day',   hoursPerDay    || '1-2 hours')
+      form.append('struggle',        struggle       || 'nothing specific')
+      form.append('background',      background     || 'not specified')
+      if (jobDescription) form.append('job_description', jobDescription)
+      if (githubUrl)      form.append('github_url',      githubUrl)
 
-      const response = await axios.post(
+      const res = await axios.post(
         'http://127.0.0.1:8000/analyze',
-        formData,
+        form,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       )
-
-      onResult(response.data)
-
+      onResult(res.data)
     } catch (err) {
-      setError('Something went wrong. Make sure backend is running.')
       console.error(err)
-    } finally {
-      setLoading(false)
     }
   }
 
+  const inputStyle = {
+    width:        '100%',
+    background:   'rgba(15,21,32,0.8)',
+    border:       `1px solid ${C.border}`,
+    borderRadius: '10px',
+    padding:      '14px 16px',
+    fontSize:     '15px',
+    color:        C.text,
+    outline:      'none',
+    resize:       'none',
+    transition:   css.fast,
+  }
+
+  const labelStyle = {
+    display:      'block',
+    fontSize:     '13px',
+    fontWeight:   '500',
+    color:        C.textMuted,
+    marginBottom: '8px',
+  }
+
+  const selectStyle = {
+    ...inputStyle,
+    cursor:     'pointer',
+    appearance: 'none',
+  }
+
+  function onFocus(e)  { e.target.style.borderColor = C.amberBorder }
+  function onBlur(e)   { e.target.style.borderColor = C.border      }
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{   opacity: 0 }}
+      style={{
+        minHeight:      '100vh',
+        display:        'flex',
+        flexDirection:  'column',
+        alignItems:     'center',
+        padding:        '40px 20px',
+        position:       'relative',
+      }}
+    >
+      {/* grid background */}
+      <div style={{
+        position:        'fixed',
+        inset:           0,
+        backgroundImage: `
+          linear-gradient(rgba(245,158,11,0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(245,158,11,0.02) 1px, transparent 1px)
+        `,
+        backgroundSize:  '56px 56px',
+        pointerEvents:   'none',
+        zIndex:          0,
+      }} />
 
-      {/* header */}
-      <div className="mb-10">
-        <h1 className="text-3xl font-semibold text-gray-900 mb-2">
-          JourneyAI
-        </h1>
-        <p className="text-gray-500">
-          Tell us where you are. We'll tell you exactly what to do next.
-        </p>
-      </div>
+      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '580px' }}>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* logo */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0   }}
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '48px' }}
+        >
+          <motion.span
+            animate={{ rotate: 360 }}
+            transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+            style={{ color: C.amber, fontSize: '18px' }}
+          >
+            ◎
+          </motion.span>
+          <span style={{ fontSize: '16px', fontWeight: '600', color: C.text }}>Journey</span>
+        </motion.div>
 
-        {/* resume */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Resume (PDF)
-          </label>
-          <input
-            type="file"
-            accept=".pdf"
-            onChange={e => setResume(e.target.files[0])}
-            className="block w-full text-sm text-gray-500
-              file:mr-4 file:py-2 file:px-4 file:rounded-lg
-              file:border-0 file:text-sm file:font-medium
-              file:bg-gray-900 file:text-white
-              hover:file:bg-gray-700 cursor-pointer"
-          />
+        {/* progress waypoints */}
+        <div style={{
+          display:        'flex',
+          alignItems:     'center',
+          justifyContent: 'center',
+          marginBottom:   '48px',
+        }}>
+          {STEPS.map((s, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
+              <motion.div
+                animate={{
+                  background:  i <= step ? C.amberGlowSm : 'rgba(30,42,58,0.5)',
+                  borderColor: i <= step ? C.amberBorder  : C.border,
+                  color:       i <= step ? C.amber         : C.textMuted,
+                }}
+                style={{
+                  width:          '36px',
+                  height:         '36px',
+                  borderRadius:   '50%',
+                  border:         '1px solid',
+                  display:        'flex',
+                  alignItems:     'center',
+                  justifyContent: 'center',
+                  fontSize:       '12px',
+                  fontWeight:     '600',
+                  transition:     css.normal,
+                }}
+              >
+                {i < step ? '✓' : s.waypoint}
+              </motion.div>
+              {i < STEPS.length - 1 && (
+                <motion.div
+                  animate={{ background: i < step ? C.amber : C.border }}
+                  style={{ width: '60px', height: '1px', transition: css.normal }}
+                />
+              )}
+            </div>
+          ))}
         </div>
 
-        {/* recent work */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            What have you done recently?
-          </label>
-          <p className="text-xs text-gray-400 mb-2">
-            Anything not on your resume — courses, projects, tools you learned
-          </p>
-          <textarea
-            rows={4}
-            value={recentWork}
-            onChange={e => setRecentWork(e.target.value)}
-            placeholder="e.g. I completed Andrew Ng's ML course, built a sentiment analysis project using HuggingFace, and I've been learning Docker for 2 weeks..."
-            className="w-full border border-gray-200 rounded-lg px-4 py-3
-              text-sm text-gray-900 placeholder-gray-400
-              focus:outline-none focus:ring-2 focus:ring-gray-900 resize-none"
-          />
-        </div>
+        {/* step content */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, x: 40  }}
+            animate={{ opacity: 1, x: 0   }}
+            exit={{   opacity: 0, x: -40  }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {/* step header */}
+            <div style={{ marginBottom: '32px' }}>
+              <p style={{
+                fontSize:      '10px',
+                fontWeight:    '600',
+                letterSpacing: '0.15em',
+                color:         C.amber,
+                textTransform: 'uppercase',
+                marginBottom:  '8px',
+              }}>
+                {STEPS[step].waypoint} — Step {step + 1} of 3
+              </p>
+              <h2 style={{
+                fontSize:      '26px',
+                fontWeight:    '700',
+                color:         C.text,
+                marginBottom:  '8px',
+                letterSpacing: '-0.01em',
+              }}>
+                {STEPS[step].title}
+              </h2>
+              <p style={{ fontSize: '14px', color: C.textMuted }}>
+                {STEPS[step].subtitle}
+              </p>
+            </div>
 
-        {/* career goal */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Career goal
-          </label>
-          <input
-            type="text"
-            value={careerGoal}
-            onChange={e => setCareerGoal(e.target.value)}
-            placeholder="e.g. I want to become a ML Engineer"
-            className="w-full border border-gray-200 rounded-lg px-4 py-3
-              text-sm text-gray-900 placeholder-gray-400
-              focus:outline-none focus:ring-2 focus:ring-gray-900"
-          />
-        </div>
+            {/* ── STEP 1 — RESUME ── */}
+            {step === 0 && (
+              <motion.div
+                onDragOver={e => { e.preventDefault(); setDragOver(true)  }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                onClick={() => document.getElementById('file-input').click()}
+                animate={{
+                  borderColor: dragOver
+                    ? C.amber
+                    : resume
+                    ? C.teal
+                    : C.border,
+                  background: dragOver
+                    ? C.amberGlowSm
+                    : resume
+                    ? C.tealGlow
+                    : 'rgba(15,21,32,0.5)',
+                }}
+                style={{
+                  border:        '1.5px dashed',
+                  borderRadius:  '14px',
+                  padding:       '48px',
+                  textAlign:     'center',
+                  cursor:        'pointer',
+                  transition:    css.normal,
+                }}
+              >
+                <input
+                  id="file-input"
+                  type="file"
+                  accept=".pdf"
+                  style={{ display: 'none' }}
+                  onChange={e => setResume(e.target.files[0])}
+                />
+                {resume ? (
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1,   opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 300 }}
+                  >
+                    <p style={{ fontSize: '28px', marginBottom: '10px' }}>✓</p>
+                    <p style={{ color: C.teal, fontWeight: '600', marginBottom: '4px' }}>
+                      {resume.name}
+                    </p>
+                    <p style={{ color: C.textMuted, fontSize: '13px' }}>Click to change</p>
+                  </motion.div>
+                ) : (
+                  <div>
+                    <motion.p
+                      animate={{ rotate: dragOver ? 45 : 0 }}
+                      style={{ fontSize: '30px', marginBottom: '12px', color: C.amber }}
+                    >
+                      ◎
+                    </motion.p>
+                    <p style={{ color: C.text, fontWeight: '500', marginBottom: '4px' }}>
+                      Drop your resume here
+                    </p>
+                    <p style={{ color: C.textMuted, fontSize: '13px' }}>
+                      or click to browse — PDF only
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            )}
 
-        {/* 3 new context questions */}
-        <div className="border border-gray-100 rounded-xl p-4 space-y-4 bg-gray-50">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-            Help us personalize your roadmap
-          </p>
+            {/* ── STEP 2 — RECENT WORK ── */}
+            {step === 1 && (
+              <div>
+                <label style={labelStyle}>
+                  What have you done recently that's not on your resume?
+                </label>
+                <textarea
+                  rows={7}
+                  value={recentWork}
+                  onChange={e => setRecentWork(e.target.value)}
+                  onFocus={onFocus}
+                  onBlur={onBlur}
+                  placeholder="e.g. Completed Andrew Ng's ML course, built a sentiment analysis project using HuggingFace, learning Docker for the past 2 weeks..."
+                  style={inputStyle}
+                />
+              </div>
+            )}
 
-          {/* hours per day */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              How many hours per day can you study?
-            </label>
-            <select
-              value={hoursPerDay}
-              onChange={e => setHoursPerDay(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-4 py-3
-                text-sm text-gray-900 bg-white
-                focus:outline-none focus:ring-2 focus:ring-gray-900"
-            >
-              <option value="">Select...</option>
-              <option value="30 minutes">30 minutes</option>
-              <option value="1 hour">1 hour</option>
-              <option value="1-2 hours">1-2 hours</option>
-              <option value="2-3 hours">2-3 hours</option>
-              <option value="3+ hours">3+ hours</option>
-            </select>
-          </div>
+            {/* ── STEP 3 — GOAL + CONTEXT ── */}
+            {step === 2 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
-          {/* struggle */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              What have you tried to learn but struggled with?
-            </label>
-            <input
-              type="text"
-              value={struggle}
-              onChange={e => setStruggle(e.target.value)}
-              placeholder="e.g. System design, algorithms, deployment..."
-              className="w-full border border-gray-200 rounded-lg px-4 py-3
-                text-sm text-gray-900 placeholder-gray-400
-                focus:outline-none focus:ring-2 focus:ring-gray-900"
-            />
-          </div>
+                <div>
+                  <label style={labelStyle}>Where do you want to go?</label>
+                  <input
+                    type="text"
+                    value={careerGoal}
+                    onChange={e => setCareerGoal(e.target.value)}
+                    onFocus={onFocus}
+                    onBlur={onBlur}
+                    placeholder="e.g. I want to become a ML Engineer"
+                    style={inputStyle}
+                  />
+                </div>
 
-          {/* background */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Background
-            </label>
-            <select
-              value={background}
-              onChange={e => setBackground(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-4 py-3
-                text-sm text-gray-900 bg-white
-                focus:outline-none focus:ring-2 focus:ring-gray-900"
-            >
-              <option value="">Select...</option>
-              <option value="Self taught">Self taught</option>
-              <option value="CS degree">CS degree</option>
-              <option value="Bootcamp graduate">Bootcamp graduate</option>
-              <option value="Non-CS degree">Non-CS degree</option>
-              <option value="Currently studying">Currently studying</option>
-            </select>
-          </div>
-        </div>
+                {/* personalization box */}
+                <div style={{
+                  background:   'rgba(15,21,32,0.6)',
+                  border:       `1px solid ${C.border}`,
+                  borderRadius: '12px',
+                  padding:      '18px',
+                  display:      'flex',
+                  flexDirection:'column',
+                  gap:          '14px',
+                }}>
+                  <p style={{
+                    fontSize:      '9px',
+                    fontWeight:    '600',
+                    letterSpacing: '0.14em',
+                    color:         C.amber,
+                    textTransform: 'uppercase',
+                  }}>
+                    Personalize your path
+                  </p>
 
-        {/* job description optional */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Job description
-            <span className="text-gray-400 font-normal ml-1">(optional)</span>
-          </label>
-          <p className="text-xs text-gray-400 mb-2">
-            Paste any job listing to get a gap analysis against it
-          </p>
-          <textarea
-            rows={3}
-            value={jobDescription}
-            onChange={e => setJobDescription(e.target.value)}
-            placeholder="Paste job description here..."
-            className="w-full border border-gray-200 rounded-lg px-4 py-3
-              text-sm text-gray-900 placeholder-gray-400
-              focus:outline-none focus:ring-2 focus:ring-gray-900 resize-none"
-          />
-        </div>
+                  <div>
+                    <label style={labelStyle}>Hours per day you can study</label>
+                    <select
+                      value={hoursPerDay}
+                      onChange={e => setHoursPerDay(e.target.value)}
+                      onFocus={onFocus}
+                      onBlur={onBlur}
+                      style={selectStyle}
+                    >
+                      <option value=""           style={{ background: '#0f1520' }}>Select...</option>
+                      <option value="30 minutes" style={{ background: '#0f1520' }}>30 minutes</option>
+                      <option value="1 hour"     style={{ background: '#0f1520' }}>1 hour</option>
+                      <option value="1-2 hours"  style={{ background: '#0f1520' }}>1-2 hours</option>
+                      <option value="2-3 hours"  style={{ background: '#0f1520' }}>2-3 hours</option>
+                      <option value="3+ hours"   style={{ background: '#0f1520' }}>3+ hours</option>
+                    </select>
+                  </div>
 
+                  <div>
+                    <label style={labelStyle}>What have you tried to learn but struggled with?</label>
+                    <input
+                      type="text"
+                      value={struggle}
+                      onChange={e => setStruggle(e.target.value)}
+                      onFocus={onFocus}
+                      onBlur={onBlur}
+                      placeholder="e.g. System design, algorithms, deployment..."
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Your background</label>
+                    <select
+                      value={background}
+                      onChange={e => setBackground(e.target.value)}
+                      onFocus={onFocus}
+                      onBlur={onBlur}
+                      style={selectStyle}
+                    >
+                      <option value=""                   style={{ background: '#0f1520' }}>Select...</option>
+                      <option value="Self taught"        style={{ background: '#0f1520' }}>Self taught</option>
+                      <option value="CS degree"          style={{ background: '#0f1520' }}>CS degree</option>
+                      <option value="Bootcamp graduate"  style={{ background: '#0f1520' }}>Bootcamp graduate</option>
+                      <option value="Non-CS degree"      style={{ background: '#0f1520' }}>Non-CS degree</option>
+                      <option value="Currently studying" style={{ background: '#0f1520' }}>Currently studying</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={labelStyle}>
+                    GitHub profile URL
+                    <span style={{ color: C.textDim, marginLeft: '8px', fontWeight: '400' }}>(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={githubUrl}
+                    onChange={e => setGithubUrl(e.target.value)}
+                    onFocus={onFocus}
+                    onBlur={onBlur}
+                    placeholder="https://github.com/yourusername"
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div>
+                  <label style={labelStyle}>
+                    Job description
+                    <span style={{ color: C.textDim, marginLeft: '8px', fontWeight: '400' }}>(optional)</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={jobDescription}
+                    onChange={e => setJobDescription(e.target.value)}
+                    onFocus={onFocus}
+                    onBlur={onBlur}
+                    placeholder="Paste a job listing to get an exact match analysis..."
+                    style={inputStyle}
+                  />
+                </div>
+
+              </div>
+            )}
+
+          </motion.div>
+        </AnimatePresence>
+
+        {/* error */}
         {error && (
-          <p className="text-sm text-red-500">{error}</p>
+          <motion.p
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1,  x: 0  }}
+            style={{ color: C.red, fontSize: '13px', marginTop: '12px' }}
+          >
+            {error}
+          </motion.p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-gray-900 text-white py-3 px-6
-            rounded-lg text-sm font-medium
-            hover:bg-gray-700 disabled:opacity-50
-            transition-colors"
-        >
-          {loading
-            ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                </svg>
-                Analyzing your profile...
-              </span>
-            )
-            : 'Get my roadmap →'
-          }
-        </button>
+        {/* navigation */}
+        <div style={{ display: 'flex', gap: '10px', marginTop: '32px' }}>
+          {step > 0 && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{  scale: 0.98 }}
+              onClick={prev}
+              style={{
+                background:   'transparent',
+                border:       `1px solid ${C.border}`,
+                color:        C.textMuted,
+                padding:      '14px 22px',
+                borderRadius: '10px',
+                fontSize:     '15px',
+                cursor:       'pointer',
+                transition:   css.fast,
+              }}
+            >
+              ← Back
+            </motion.button>
+          )}
 
-      </form>
-    </div>
+          {step < 2 ? (
+            <motion.button
+              whileHover={{ scale: 1.02, boxShadow: `0 0 30px ${C.amber}22` }}
+              whileTap={{  scale: 0.98 }}
+              onClick={next}
+              style={{
+                flex:         1,
+                background:   C.amber,
+                border:       'none',
+                color:        '#080c14',
+                padding:      '14px 24px',
+                borderRadius: '10px',
+                fontSize:     '15px',
+                fontWeight:   '700',
+                cursor:       'pointer',
+              }}
+            >
+              Continue →
+            </motion.button>
+          ) : (
+            <motion.button
+              whileHover={{ scale: 1.02, boxShadow: `0 0 40px ${C.amber}33` }}
+              whileTap={{  scale: 0.98 }}
+              onClick={handleSubmit}
+              style={{
+                flex:         1,
+                background:   C.amber,
+                border:       'none',
+                color:        '#080c14',
+                padding:      '14px 24px',
+                borderRadius: '10px',
+                fontSize:     '15px',
+                fontWeight:   '700',
+                cursor:       'pointer',
+              }}
+            >
+              Chart my path →
+            </motion.button>
+          )}
+        </div>
+
+      </div>
+    </motion.div>
   )
 }
