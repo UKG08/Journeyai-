@@ -1,14 +1,3 @@
-// ─────────────────────────────────────────────────────
-// JarvisChat.jsx
-// JARVIS-style holographic chat assistant
-// Fixed bottom right — always visible on output page
-// Collapsed: thin glowing strip with compass icon
-// Expanded: panel unfolds upward mechanically
-// Typewriter welcome message
-// Particle burst on open
-// Messages animate in from sides
-// ─────────────────────────────────────────────────────
-
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence }                  from 'framer-motion'
 import { C }                                        from '../../utils/colors'

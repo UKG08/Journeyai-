@@ -1,8 +1,21 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { C } from '../utils/colors'
 import { css } from '../animations/transitions'
+
+// ── tiny responsive hook ───────────────────────────────
+function useBreakpoint() {
+  const [w, setW] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 1200
+  )
+  useEffect(() => {
+    const handler = () => setW(window.innerWidth)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+  return { isMobile: w < 640, isTablet: w < 1024, width: w }
+}
 
 const STEPS = [
   {
@@ -35,6 +48,8 @@ export default function InputPage({ onLoading, onResult }) {
   const [background,     setBackground]     = useState('')
   const [githubUrl,      setGithubUrl]      = useState('')
 
+  const { isMobile } = useBreakpoint()
+
   function handleDrop(e) {
     e.preventDefault()
     setDragOver(false)
@@ -43,7 +58,7 @@ export default function InputPage({ onLoading, onResult }) {
   }
 
   function next() {
-    if (step === 0 && !resume)          return setError('Please upload your resume PDF')
+    if (step === 0 && !resume)           return setError('Please upload your resume PDF')
     if (step === 1 && !recentWork.trim()) return setError('Please describe your recent work')
     setError(null)
     setStep(s => s + 1)
@@ -86,12 +101,13 @@ export default function InputPage({ onLoading, onResult }) {
     background:   'rgba(15,21,32,0.8)',
     border:       `1px solid ${C.border}`,
     borderRadius: '10px',
-    padding:      '14px 16px',
-    fontSize:     '15px',
+    padding:      isMobile ? '12px 14px' : '14px 16px',
+    fontSize:     isMobile ? '16px' : '15px', // 16px prevents iOS zoom on focus
     color:        C.text,
     outline:      'none',
     resize:       'none',
     transition:   css.fast,
+    boxSizing:    'border-box',
   }
 
   const labelStyle = {
@@ -106,10 +122,14 @@ export default function InputPage({ onLoading, onResult }) {
     ...inputStyle,
     cursor:     'pointer',
     appearance: 'none',
+    WebkitAppearance: 'none',
   }
 
   function onFocus(e)  { e.target.style.borderColor = C.amberBorder }
   function onBlur(e)   { e.target.style.borderColor = C.border      }
+
+  // connector line width responsive
+  const connectorWidth = isMobile ? '40px' : '60px'
 
   return (
     <motion.div
@@ -121,7 +141,7 @@ export default function InputPage({ onLoading, onResult }) {
         display:        'flex',
         flexDirection:  'column',
         alignItems:     'center',
-        padding:        '40px 20px',
+        padding:        isMobile ? '24px 16px' : '40px 20px',
         position:       'relative',
       }}
     >
@@ -138,13 +158,18 @@ export default function InputPage({ onLoading, onResult }) {
         zIndex:          0,
       }} />
 
-      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '580px' }}>
+      <div style={{
+        position: 'relative',
+        zIndex:   1,
+        width:    '100%',
+        maxWidth: '580px',
+      }}>
 
         {/* logo */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0   }}
-          style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '48px' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: isMobile ? '32px' : '48px' }}
         >
           <motion.span
             animate={{ rotate: 360 }}
@@ -161,7 +186,7 @@ export default function InputPage({ onLoading, onResult }) {
           display:        'flex',
           alignItems:     'center',
           justifyContent: 'center',
-          marginBottom:   '48px',
+          marginBottom:   isMobile ? '32px' : '48px',
         }}>
           {STEPS.map((s, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
@@ -172,8 +197,8 @@ export default function InputPage({ onLoading, onResult }) {
                   color:       i <= step ? C.amber         : C.textMuted,
                 }}
                 style={{
-                  width:          '36px',
-                  height:         '36px',
+                  width:          isMobile ? '32px' : '36px',
+                  height:         isMobile ? '32px' : '36px',
                   borderRadius:   '50%',
                   border:         '1px solid',
                   display:        'flex',
@@ -182,6 +207,7 @@ export default function InputPage({ onLoading, onResult }) {
                   fontSize:       '12px',
                   fontWeight:     '600',
                   transition:     css.normal,
+                  flexShrink:     0,
                 }}
               >
                 {i < step ? '✓' : s.waypoint}
@@ -189,7 +215,7 @@ export default function InputPage({ onLoading, onResult }) {
               {i < STEPS.length - 1 && (
                 <motion.div
                   animate={{ background: i < step ? C.amber : C.border }}
-                  style={{ width: '60px', height: '1px', transition: css.normal }}
+                  style={{ width: connectorWidth, height: '1px', transition: css.normal }}
                 />
               )}
             </div>
@@ -206,7 +232,7 @@ export default function InputPage({ onLoading, onResult }) {
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           >
             {/* step header */}
-            <div style={{ marginBottom: '32px' }}>
+            <div style={{ marginBottom: '28px' }}>
               <p style={{
                 fontSize:      '10px',
                 fontWeight:    '600',
@@ -218,7 +244,7 @@ export default function InputPage({ onLoading, onResult }) {
                 {STEPS[step].waypoint} — Step {step + 1} of 3
               </p>
               <h2 style={{
-                fontSize:      '26px',
+                fontSize:      isMobile ? '22px' : '26px',
                 fontWeight:    '700',
                 color:         C.text,
                 marginBottom:  '8px',
@@ -253,7 +279,7 @@ export default function InputPage({ onLoading, onResult }) {
                 style={{
                   border:        '1.5px dashed',
                   borderRadius:  '14px',
-                  padding:       '48px',
+                  padding:       isMobile ? '36px 24px' : '48px',
                   textAlign:     'center',
                   cursor:        'pointer',
                   transition:    css.normal,
@@ -273,7 +299,13 @@ export default function InputPage({ onLoading, onResult }) {
                     transition={{ type: 'spring', stiffness: 300 }}
                   >
                     <p style={{ fontSize: '28px', marginBottom: '10px' }}>✓</p>
-                    <p style={{ color: C.teal, fontWeight: '600', marginBottom: '4px' }}>
+                    <p style={{
+                      color:      C.teal,
+                      fontWeight: '600',
+                      marginBottom: '4px',
+                      wordBreak:  'break-word',
+                      fontSize:   isMobile ? '13px' : '15px',
+                    }}>
                       {resume.name}
                     </p>
                     <p style={{ color: C.textMuted, fontSize: '13px' }}>Click to change</p>
@@ -287,10 +319,10 @@ export default function InputPage({ onLoading, onResult }) {
                       ◎
                     </motion.p>
                     <p style={{ color: C.text, fontWeight: '500', marginBottom: '4px' }}>
-                      Drop your resume here
+                      {isMobile ? 'Tap to browse' : 'Drop your resume here'}
                     </p>
                     <p style={{ color: C.textMuted, fontSize: '13px' }}>
-                      or click to browse — PDF only
+                      {isMobile ? 'PDF only' : 'or click to browse — PDF only'}
                     </p>
                   </div>
                 )}
@@ -304,7 +336,7 @@ export default function InputPage({ onLoading, onResult }) {
                   What have you done recently that's not on your resume?
                 </label>
                 <textarea
-                  rows={7}
+                  rows={isMobile ? 6 : 7}
                   value={recentWork}
                   onChange={e => setRecentWork(e.target.value)}
                   onFocus={onFocus}
@@ -334,13 +366,13 @@ export default function InputPage({ onLoading, onResult }) {
 
                 {/* personalization box */}
                 <div style={{
-                  background:   'rgba(15,21,32,0.6)',
-                  border:       `1px solid ${C.border}`,
-                  borderRadius: '12px',
-                  padding:      '18px',
-                  display:      'flex',
-                  flexDirection:'column',
-                  gap:          '14px',
+                  background:    'rgba(15,21,32,0.6)',
+                  border:        `1px solid ${C.border}`,
+                  borderRadius:  '12px',
+                  padding:       isMobile ? '16px' : '18px',
+                  display:       'flex',
+                  flexDirection: 'column',
+                  gap:           '14px',
                 }}>
                   <p style={{
                     fontSize:      '9px',
@@ -352,22 +384,47 @@ export default function InputPage({ onLoading, onResult }) {
                     Personalize your path
                   </p>
 
-                  <div>
-                    <label style={labelStyle}>Hours per day you can study</label>
-                    <select
-                      value={hoursPerDay}
-                      onChange={e => setHoursPerDay(e.target.value)}
-                      onFocus={onFocus}
-                      onBlur={onBlur}
-                      style={selectStyle}
-                    >
-                      <option value=""           style={{ background: '#0f1520' }}>Select...</option>
-                      <option value="30 minutes" style={{ background: '#0f1520' }}>30 minutes</option>
-                      <option value="1 hour"     style={{ background: '#0f1520' }}>1 hour</option>
-                      <option value="1-2 hours"  style={{ background: '#0f1520' }}>1-2 hours</option>
-                      <option value="2-3 hours"  style={{ background: '#0f1520' }}>2-3 hours</option>
-                      <option value="3+ hours"   style={{ background: '#0f1520' }}>3+ hours</option>
-                    </select>
+                  {/* hours + background side by side on larger screens */}
+                  <div style={{
+                    display:             'grid',
+                    gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                    gap:                 '14px',
+                  }}>
+                    <div>
+                      <label style={labelStyle}>Hours per day to study</label>
+                      <select
+                        value={hoursPerDay}
+                        onChange={e => setHoursPerDay(e.target.value)}
+                        onFocus={onFocus}
+                        onBlur={onBlur}
+                        style={selectStyle}
+                      >
+                        <option value=""           style={{ background: '#0f1520' }}>Select...</option>
+                        <option value="30 minutes" style={{ background: '#0f1520' }}>30 minutes</option>
+                        <option value="1 hour"     style={{ background: '#0f1520' }}>1 hour</option>
+                        <option value="1-2 hours"  style={{ background: '#0f1520' }}>1-2 hours</option>
+                        <option value="2-3 hours"  style={{ background: '#0f1520' }}>2-3 hours</option>
+                        <option value="3+ hours"   style={{ background: '#0f1520' }}>3+ hours</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={labelStyle}>Your background</label>
+                      <select
+                        value={background}
+                        onChange={e => setBackground(e.target.value)}
+                        onFocus={onFocus}
+                        onBlur={onBlur}
+                        style={selectStyle}
+                      >
+                        <option value=""                   style={{ background: '#0f1520' }}>Select...</option>
+                        <option value="Self taught"        style={{ background: '#0f1520' }}>Self taught</option>
+                        <option value="CS degree"          style={{ background: '#0f1520' }}>CS degree</option>
+                        <option value="Bootcamp graduate"  style={{ background: '#0f1520' }}>Bootcamp graduate</option>
+                        <option value="Non-CS degree"      style={{ background: '#0f1520' }}>Non-CS degree</option>
+                        <option value="Currently studying" style={{ background: '#0f1520' }}>Currently studying</option>
+                      </select>
+                    </div>
                   </div>
 
                   <div>
@@ -382,24 +439,6 @@ export default function InputPage({ onLoading, onResult }) {
                       style={inputStyle}
                     />
                   </div>
-
-                  <div>
-                    <label style={labelStyle}>Your background</label>
-                    <select
-                      value={background}
-                      onChange={e => setBackground(e.target.value)}
-                      onFocus={onFocus}
-                      onBlur={onBlur}
-                      style={selectStyle}
-                    >
-                      <option value=""                   style={{ background: '#0f1520' }}>Select...</option>
-                      <option value="Self taught"        style={{ background: '#0f1520' }}>Self taught</option>
-                      <option value="CS degree"          style={{ background: '#0f1520' }}>CS degree</option>
-                      <option value="Bootcamp graduate"  style={{ background: '#0f1520' }}>Bootcamp graduate</option>
-                      <option value="Non-CS degree"      style={{ background: '#0f1520' }}>Non-CS degree</option>
-                      <option value="Currently studying" style={{ background: '#0f1520' }}>Currently studying</option>
-                    </select>
-                  </div>
                 </div>
 
                 <div>
@@ -408,7 +447,9 @@ export default function InputPage({ onLoading, onResult }) {
                     <span style={{ color: C.textDim, marginLeft: '8px', fontWeight: '400' }}>(optional)</span>
                   </label>
                   <input
-                    type="text"
+                    type="url"
+                    inputMode="url"
+                    autoCapitalize="none"
                     value={githubUrl}
                     onChange={e => setGithubUrl(e.target.value)}
                     onFocus={onFocus}
@@ -467,6 +508,7 @@ export default function InputPage({ onLoading, onResult }) {
                 fontSize:     '15px',
                 cursor:       'pointer',
                 transition:   css.fast,
+                flexShrink:   0,
               }}
             >
               ← Back

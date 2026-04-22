@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────
-// OutputPage.jsx
+// OutputPage.jsx  (responsive)
 // THE CONDUCTOR — arranges all 20+ components
 // Zero animation logic here
 // Zero data processing here
@@ -7,35 +7,51 @@
 // Five acts with connectors between them
 // ─────────────────────────────────────────────────────
 
-import { useEffect }         from 'react'
-import { motion }            from 'framer-motion'
-import { normalizeData }     from '../utils/normalize'
-import { C }                 from '../utils/colors'
+import { useEffect, useState }   from 'react'
+import { motion }                from 'framer-motion'
+import { normalizeData }         from '../utils/normalize'
+import { C }                     from '../utils/colors'
 
 // layout
-import ThreeZoneLayout       from '../components/layout/ThreeZoneLayout'
-import LeftPanel             from '../components/layout/LeftPanel'
-import RightHUD              from '../components/layout/RightHUD'
+import ThreeZoneLayout           from '../components/layout/ThreeZoneLayout'
+import LeftPanel                 from '../components/layout/LeftPanel'
+import RightHUD                  from '../components/layout/RightHUD'
 
 // ui
-import ActConnector          from '../components/ui/ActConnector'
-import SectionProgress       from '../components/ui/SectionProgress'
-import JarvisChat            from '../components/ui/JarvisChat'
+import ActConnector              from '../components/ui/ActConnector'
+import SectionProgress           from '../components/ui/SectionProgress'
+import JarvisChat                from '../components/ui/JarvisChat'
 
 // cards — act by act
-import HeroCard              from '../components/cards/HeroCard'
-import InsightCard           from '../components/cards/InsightCard'
-import SkillCard             from '../components/cards/SkillCard'
-import ResumeCard            from '../components/cards/ResumeCard'
-import NextStepCard          from '../components/cards/NextStepCard'
-import RoadmapCard           from '../components/cards/RoadmapCard'
-import PortfolioCard         from '../components/cards/PortfolioCard'
-import JobMatchCard          from '../components/cards/JobMatchCard'
+import HeroCard                  from '../components/cards/HeroCard'
+import InsightCard               from '../components/cards/InsightCard'
+import SkillCard                 from '../components/cards/SkillCard'
+import ResumeCard                from '../components/cards/ResumeCard'
+import NextStepCard              from '../components/cards/NextStepCard'
+import RoadmapCard               from '../components/cards/RoadmapCard'
+import PortfolioCard             from '../components/cards/PortfolioCard'
+import JobMatchCard              from '../components/cards/JobMatchCard'
 
 // visual — dependency graph
-import ForceGraph            from '../components/visual/ForceGraph'
+import ForceGraph                from '../components/visual/ForceGraph'
+
+// ── tiny responsive hook ───────────────────────────────
+function useBreakpoint() {
+  const [w, setW] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 1200
+  )
+  useEffect(() => {
+    const handler = () => setW(window.innerWidth)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+  // Three-zone layout needs ~1100px to be comfortable
+  return { isMobile: w < 640, isTablet: w < 1100, width: w }
+}
 
 export default function OutputPage({ data, onReset }) {
+
+  const { isMobile, isTablet } = useBreakpoint()
 
   // normalize raw Groq data into clean guaranteed shape
   const normalized = normalizeData(data)
@@ -50,8 +66,9 @@ export default function OutputPage({ data, onReset }) {
         justifyContent: 'center',
         flexDirection:  'column',
         gap:            '16px',
+        padding:        '20px',
       }}>
-        <p style={{ color: C.red, fontSize: '16px' }}>
+        <p style={{ color: C.red, fontSize: '16px', textAlign: 'center' }}>
           Something went wrong. No data received.
         </p>
         <button
@@ -74,7 +91,11 @@ export default function OutputPage({ data, onReset }) {
 
   // ── CENTER CONTENT ─────────────────────────────────
   const CenterContent = (
-    <div style={{ maxWidth: '680px', margin: '0 auto', padding: '20px 0 120px' }}>
+    <div style={{
+      maxWidth: '680px',
+      margin:   '0 auto',
+      padding:  isMobile ? '16px 0 100px' : '20px 0 120px',
+    }}>
 
       {/* ── ACT 1: THE AWAKENING ── */}
       <HeroCard data={normalized} />
@@ -99,7 +120,7 @@ export default function OutputPage({ data, onReset }) {
               background:   C.card,
               border:       `1px solid ${C.border}`,
               borderRadius: '16px',
-              padding:      '24px',
+              padding:      isMobile ? '16px' : '24px',
               marginBottom: '0',
             }}
           >
@@ -121,7 +142,7 @@ export default function OutputPage({ data, onReset }) {
               {normalized.depMap.map_title}
             </p>
             <p style={{ fontSize: '11px', color: C.textMuted, marginBottom: '16px' }}>
-              Drag nodes to explore — hover to see connections
+              {isMobile ? 'Tap nodes to explore' : 'Drag nodes to explore — hover to see connections'}
             </p>
 
             {/* critical path */}
@@ -209,7 +230,7 @@ export default function OutputPage({ data, onReset }) {
             background:   C.card,
             border:       `1px solid ${C.border}`,
             borderRadius: '16px',
-            padding:      '24px',
+            padding:      isMobile ? '16px' : '24px',
             marginTop:    '16px',
           }}
         >
@@ -219,7 +240,7 @@ export default function OutputPage({ data, onReset }) {
             letterSpacing: '0.15em',
             color:         C.amber,
             textTransform: 'uppercase',
-            marginBottom:  '16px',
+            marginBottom:  '8px',
             display:       'flex',
             alignItems:    'center',
             gap:           '8px',
@@ -227,31 +248,46 @@ export default function OutputPage({ data, onReset }) {
             <span style={{ display: 'inline-block', width: '14px', height: '1px', background: C.amber }} />
             GitHub analysis
           </p>
+          <p style={{ fontSize: '13px', fontWeight: '600', color: C.text, marginBottom: '16px' }}>
+            {normalized.github.title || 'Repository review'}
+          </p>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
+          <div style={{
+            display:    'flex',
+            alignItems: isMobile ? 'flex-start' : 'center',
+            gap:        '16px',
+            marginBottom: '12px',
+            flexDirection: isMobile ? 'column' : 'row',
+          }}>
             <p style={{
-              fontSize:   '40px',
+              fontSize:   isMobile ? '36px' : '40px',
               fontWeight: '700',
               color:      C.scoreColor(normalized.github.score),
               fontFamily: 'monospace',
               lineHeight: '1',
+              flexShrink: 0,
             }}>
               {normalized.github.score}
               <span style={{ fontSize: '16px', color: C.textMuted }}>/100</span>
             </p>
-            <p style={{ fontSize: '13px', color: C.textMuted, lineHeight: '1.6', flex: 1 }}>
+            <p style={{ fontSize: '13px', color: C.textMuted, lineHeight: '1.6' }}>
               {normalized.github.summary}
             </p>
           </div>
 
           {normalized.github.findings?.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+            <div style={{
+              display:             'grid',
+              gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+              gap:                 '12px',
+              marginBottom:        '12px',
+            }}>
               <div>
                 {normalized.github.findings
                   .filter(f => f.type === 'positive')
                   .map((f, i) => (
                     <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
-                      <span style={{ color: C.teal, fontSize: '11px', marginTop: '2px' }}>→</span>
+                      <span style={{ color: C.teal, fontSize: '11px', marginTop: '2px', flexShrink: 0 }}>→</span>
                       <p style={{ fontSize: '12px', color: C.textMuted, lineHeight: '1.5' }}>{f.point}</p>
                     </div>
                   ))
@@ -262,7 +298,7 @@ export default function OutputPage({ data, onReset }) {
                   .filter(f => f.type === 'negative')
                   .map((f, i) => (
                     <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
-                      <span style={{ color: C.red, fontSize: '11px', marginTop: '2px' }}>•</span>
+                      <span style={{ color: C.red, fontSize: '11px', marginTop: '2px', flexShrink: 0 }}>•</span>
                       <p style={{ fontSize: '12px', color: C.textMuted, lineHeight: '1.5' }}>{f.point}</p>
                     </div>
                   ))
@@ -283,7 +319,7 @@ export default function OutputPage({ data, onReset }) {
               </p>
               {normalized.github.improvements.map((imp, i) => (
                 <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
-                  <span style={{ color: C.amber, fontSize: '11px', marginTop: '2px' }}>→</span>
+                  <span style={{ color: C.amber, fontSize: '11px', marginTop: '2px', flexShrink: 0 }}>→</span>
                   <p style={{ fontSize: '12px', color: C.textMuted, lineHeight: '1.5' }}>{imp}</p>
                 </div>
               ))}
@@ -312,7 +348,7 @@ export default function OutputPage({ data, onReset }) {
             background:   'rgba(8,12,20,0.95)',
             border:       `1px solid ${C.amberBorder}`,
             borderRadius: '20px',
-            padding:      '40px',
+            padding:      isMobile ? '28px 20px' : '40px',
             textAlign:    'center',
             position:     'relative',
             overflow:     'hidden',
@@ -355,7 +391,7 @@ export default function OutputPage({ data, onReset }) {
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
               style={{
-                fontSize:      '28px',
+                fontSize:      isMobile ? '22px' : '28px',
                 fontWeight:    '700',
                 color:         C.text,
                 marginBottom:  '8px',
@@ -412,7 +448,7 @@ export default function OutputPage({ data, onReset }) {
                   background:   C.amber,
                   border:       'none',
                   color:        '#080c14',
-                  padding:      '14px 32px',
+                  padding:      isMobile ? '14px 24px' : '14px 32px',
                   borderRadius: '10px',
                   fontSize:     '14px',
                   fontWeight:   '700',
@@ -429,7 +465,64 @@ export default function OutputPage({ data, onReset }) {
     </div>
   )
 
-  // ── THREE ZONE LAYOUT ──────────────────────────────
+  // ── THREE ZONE LAYOUT (desktop only) ───────────────
+  // On tablet/mobile: collapse to single-column, hide side panels
+  if (isTablet) {
+    return (
+      <>
+        <SectionProgress />
+
+        {/* Mobile top bar with reset */}
+        <div style={{
+          position:       'sticky',
+          top:            0,
+          zIndex:         50,
+          background:     'rgba(8,12,20,0.92)',
+          backdropFilter: 'blur(12px)',
+          borderBottom:   `1px solid ${C.border}`,
+          padding:        isMobile ? '12px 16px' : '14px 24px',
+          display:        'flex',
+          alignItems:     'center',
+          justifyContent: 'space-between',
+          gap:            '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <motion.span
+              animate={{ rotate: 360 }}
+              transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+              style={{ color: C.amber, fontSize: '16px' }}
+            >
+              ◎
+            </motion.span>
+            <span style={{ fontSize: '15px', fontWeight: '600', color: C.text }}>Journey</span>
+          </div>
+
+          <button
+            onClick={onReset}
+            style={{
+              background:   'transparent',
+              border:       `1px solid ${C.border}`,
+              color:        C.textMuted,
+              padding:      '7px 14px',
+              borderRadius: '8px',
+              cursor:       'pointer',
+              fontSize:     '13px',
+            }}
+          >
+            ← New journey
+          </button>
+        </div>
+
+        {/* Single column content */}
+        <div style={{ padding: isMobile ? '0 16px' : '0 24px' }}>
+          {CenterContent}
+        </div>
+
+        <JarvisChat profile={data} />
+      </>
+    )
+  }
+
   return (
     <>
       <SectionProgress />
@@ -446,4 +539,3 @@ export default function OutputPage({ data, onReset }) {
     </>
   )
 }
-

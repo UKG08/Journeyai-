@@ -3,8 +3,23 @@ import { motion }            from 'framer-motion'
 import { C }                 from '../utils/colors'
 import { css }               from '../animations/transitions'
 
+// ── tiny responsive hook ───────────────────────────────
+import { useState } from 'react'
+function useBreakpoint() {
+  const [w, setW] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 1200
+  )
+  useEffect(() => {
+    const handler = () => setW(window.innerWidth)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+  return { isMobile: w < 640, isTablet: w < 1024, width: w }
+}
+
 export default function LandingPage({ onStart }) {
   const canvasRef = useRef(null)
+  const { isMobile, isTablet } = useBreakpoint()
 
   // animated path drawing
   useEffect(() => {
@@ -57,7 +72,6 @@ export default function LandingPage({ onStart }) {
       }
       ctx.stroke()
 
-      // waypoint dots
       points.forEach((p, i) => {
         if (i / total <= progress) {
           ctx.setLineDash([])
@@ -129,7 +143,7 @@ export default function LandingPage({ onStart }) {
         style={{
           position:       'relative',
           zIndex:         10,
-          padding:        '24px 40px',
+          padding:        isMobile ? '16px 20px' : '24px 40px',
           display:        'flex',
           alignItems:     'center',
           justifyContent: 'space-between',
@@ -157,15 +171,16 @@ export default function LandingPage({ onStart }) {
             background:   'transparent',
             border:       `1px solid ${C.amberBorder}`,
             color:        C.amber,
-            padding:      '8px 20px',
+            padding:      isMobile ? '7px 14px' : '8px 20px',
             borderRadius: '8px',
-            fontSize:     '14px',
+            fontSize:     isMobile ? '13px' : '14px',
             cursor:       'pointer',
             fontWeight:   '500',
             transition:   css.fast,
+            whiteSpace:   'nowrap',
           }}
         >
-          Start your journey →
+          {isMobile ? 'Start →' : 'Start your journey →'}
         </motion.button>
       </motion.nav>
 
@@ -175,7 +190,7 @@ export default function LandingPage({ onStart }) {
         zIndex:    10,
         maxWidth:  '860px',
         margin:    '0 auto',
-        padding:   '100px 40px 60px',
+        padding:   isMobile ? '60px 20px 40px' : isTablet ? '80px 32px 50px' : '100px 40px 60px',
         textAlign: 'center',
       }}>
 
@@ -192,7 +207,7 @@ export default function LandingPage({ onStart }) {
             border:       `1px solid ${C.amberBorder}`,
             borderRadius: '100px',
             padding:      '6px 16px',
-            marginBottom: '40px',
+            marginBottom: isMobile ? '28px' : '40px',
           }}
         >
           <span style={{ color: C.amber, fontSize: '12px' }}>◎</span>
@@ -214,7 +229,7 @@ export default function LandingPage({ onStart }) {
                 ease:     [0.22, 1, 0.36, 1],
               }}
               style={{
-                fontSize:      '62px',
+                fontSize:      isMobile ? '38px' : isTablet ? '50px' : '62px',
                 fontWeight:    '700',
                 lineHeight:    '1.1',
                 color:         i === 2 ? C.amber : C.text,
@@ -233,11 +248,12 @@ export default function LandingPage({ onStart }) {
           animate={{ opacity: 1, y: 0  }}
           transition={{ delay: 1.0, duration: 0.6 }}
           style={{
-            fontSize:     '18px',
+            fontSize:     isMobile ? '16px' : '18px',
             color:        C.textMuted,
             lineHeight:   '1.7',
             maxWidth:     '540px',
-            margin:       '0 auto 48px',
+            margin:       '0 auto 40px',
+            padding:      '0 4px',
           }}
         >
           Upload your resume. Tell us where you've been.{' '}
@@ -251,7 +267,14 @@ export default function LandingPage({ onStart }) {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0  }}
           transition={{ delay: 1.2, duration: 0.6 }}
-          style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}
+          style={{
+            display:        'flex',
+            gap:            '16px',
+            justifyContent: 'center',
+            flexWrap:       'wrap',
+            flexDirection:  isMobile ? 'column' : 'row',
+            alignItems:     'center',
+          }}
         >
           <motion.button
             whileHover={{
@@ -264,11 +287,12 @@ export default function LandingPage({ onStart }) {
               background:   C.amber,
               color:        '#080c14',
               border:       'none',
-              padding:      '16px 40px',
+              padding:      isMobile ? '16px 32px' : '16px 40px',
               borderRadius: '12px',
               fontSize:     '16px',
               fontWeight:   '700',
               cursor:       'pointer',
+              width:        isMobile ? '100%' : 'auto',
             }}
           >
             Find my next step →
@@ -280,7 +304,7 @@ export default function LandingPage({ onStart }) {
             gap:        '8px',
             color:      C.textMuted,
             fontSize:   '14px',
-            padding:    '16px 0',
+            padding:    '8px 0',
           }}>
             <span style={{ color: C.teal }}>◎</span>
             Free — no account needed
@@ -290,11 +314,11 @@ export default function LandingPage({ onStart }) {
 
       {/* how it works */}
       <div style={{
-        position:  'relative',
-        zIndex:    10,
-        maxWidth:  '1000px',
-        margin:    '0 auto',
-        padding:   '60px 40px',
+        position: 'relative',
+        zIndex:   10,
+        maxWidth: '1000px',
+        margin:   '0 auto',
+        padding:  isMobile ? '40px 20px' : isTablet ? '50px 32px' : '60px 40px',
       }}>
         <motion.p
           initial={{ opacity: 0 }}
@@ -313,11 +337,15 @@ export default function LandingPage({ onStart }) {
           How it works
         </motion.p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+        <div style={{
+          display:             'grid',
+          gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+          gap:                 '8px',
+        }}>
           {[
-            { n: '01', title: 'Where you are',      desc: 'Upload your resume and tell us what you\'ve built lately — even things not on your resume yet.' },
-            { n: '02', title: 'AI maps your journey', desc: 'Our AI reads your full story — skills, gaps, potential — and builds a complete picture.'         },
-            { n: '03', title: 'Your path appears',   desc: 'Get your exact next step, a day-by-day plan, free resources, and a full roadmap to your goal.'    },
+            { n: '01', title: 'Where you are',        desc: "Upload your resume and tell us what you've built lately — even things not on your resume yet." },
+            { n: '02', title: 'AI maps your journey',  desc: 'Our AI reads your full story — skills, gaps, potential — and builds a complete picture.'        },
+            { n: '03', title: 'Your path appears',     desc: 'Get your exact next step, a day-by-day plan, free resources, and a full roadmap to your goal.'   },
           ].map((item, i) => (
             <motion.div
               key={i}
@@ -330,7 +358,7 @@ export default function LandingPage({ onStart }) {
                 background:   'rgba(15,21,32,0.8)',
                 border:       `1px solid ${C.border}`,
                 borderRadius: '14px',
-                padding:      '32px 24px',
+                padding:      isMobile ? '24px 20px' : '32px 24px',
                 cursor:       'default',
               }}
             >
@@ -361,7 +389,7 @@ export default function LandingPage({ onStart }) {
         zIndex:   10,
         maxWidth: '1000px',
         margin:   '0 auto',
-        padding:  '20px 40px 80px',
+        padding:  isMobile ? '20px 20px 60px' : isTablet ? '20px 32px 70px' : '20px 40px 80px',
       }}>
         <motion.p
           initial={{ opacity: 0 }}
@@ -380,7 +408,11 @@ export default function LandingPage({ onStart }) {
           What you get
         </motion.p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+        <div style={{
+          display:             'grid',
+          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : isTablet ? 'repeat(3, 1fr)' : 'repeat(3, 1fr)',
+          gap:                 '8px',
+        }}>
           {features.map((f, i) => (
             <motion.div
               key={i}
@@ -393,7 +425,7 @@ export default function LandingPage({ onStart }) {
                 background:   'rgba(15,21,32,0.6)',
                 border:       `1px solid ${C.border}`,
                 borderRadius: '10px',
-                padding:      '20px',
+                padding:      isMobile ? '16px' : '20px',
                 cursor:       'default',
               }}
             >
@@ -417,19 +449,20 @@ export default function LandingPage({ onStart }) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         style={{
-          position:   'relative',
-          zIndex:     10,
-          textAlign:  'center',
-          padding:    '60px 40px 100px',
-          borderTop:  `1px solid ${C.border}`,
+          position:  'relative',
+          zIndex:    10,
+          textAlign: 'center',
+          padding:   isMobile ? '40px 20px 80px' : '60px 40px 100px',
+          borderTop: `1px solid ${C.border}`,
         }}
       >
         <p style={{
-          fontSize:      '36px',
+          fontSize:      isMobile ? '26px' : '36px',
           fontWeight:    '700',
           color:         C.text,
           marginBottom:  '12px',
           letterSpacing: '-0.02em',
+          padding:       '0 8px',
         }}>
           Ready to find your path?
         </p>
@@ -447,11 +480,13 @@ export default function LandingPage({ onStart }) {
             background:   C.amber,
             color:        '#080c14',
             border:       'none',
-            padding:      '18px 48px',
+            padding:      isMobile ? '16px 36px' : '18px 48px',
             borderRadius: '12px',
-            fontSize:     '17px',
+            fontSize:     isMobile ? '15px' : '17px',
             fontWeight:   '700',
             cursor:       'pointer',
+            width:        isMobile ? 'calc(100% - 40px)' : 'auto',
+            maxWidth:     '340px',
           }}
         >
           Start your journey →

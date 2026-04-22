@@ -1,36 +1,66 @@
 import os
 import json
+import time
 import requests
 from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+# ── API KEY ROTATION ──────────────────────────────────
+API_KEYS = [
+    os.getenv("GROQ_API_KEY_1"),
+    os.getenv("GROQ_API_KEY_2"),
+    os.getenv("GROQ_API_KEY_3"),
+]
+API_KEYS = [k for k in API_KEYS if k]
 
+current_key_index = 0
 
-# ─────────────────────────────────────
-# HELPER
-# ─────────────────────────────────────
+def get_client():
+    return Groq(api_key=API_KEYS[current_key_index])
+
+# ── HELPER ────────────────────────────────────────────
 def call_groq(system: str, user: str, temperature=0.3, max_tokens=2000) -> dict:
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user",   "content": user}
-        ],
-        temperature=temperature,
-        max_tokens=max_tokens
-    )
-    raw = response.choices[0].message.content.strip()
+    global current_key_index
 
-    if "```" in raw:
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-        raw = raw.strip()
+    for attempt in range(len(API_KEYS)):
+        try:
+            client = get_client()
+            response = get_client().chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user",   "content": user}
+                ],
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            raw = response.choices[0].message.content.strip()
 
-    return json.loads(raw)
+            # strip markdown code fences if present
+            if "```" in raw:
+                raw = raw.split("```")[1]
+                if raw.startswith("json"):
+                    raw = raw[4:]
+                raw = raw.strip()
+
+            return json.loads(raw)
+
+        except Exception as e:
+            error_str = str(e)
+
+            if "rate_limit_exceeded" in error_str or "429" in error_str:
+                print(f"Rate limit on key {current_key_index + 1} — switching")
+                current_key_index = (current_key_index + 1) % len(API_KEYS)
+                if attempt == len(API_KEYS) - 1:
+                    print("All keys rate limited — waiting 60 seconds")
+                    time.sleep(60)
+            else:
+                raise e
+
+    raise Exception("All API keys are rate limited")
+
 
 
 # ─────────────────────────────────────
@@ -698,7 +728,7 @@ HOW TO RESPOND:
             "content": msg["content"]
         })
 
-    response = client.chat.completions.create(
+    response = get_client().chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=groq_messages,
         temperature=0.5,
