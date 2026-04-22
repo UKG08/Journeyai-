@@ -86,7 +86,7 @@ export default function InputPage({ onLoading, onResult }) {
       if (githubUrl)      form.append('github_url',      githubUrl)
 
       const res = await axios.post(
-        'http://127.0.0.1:8000/analyze',
+        'https://journeyai-myji.onrender.com/analyze',
         form,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       )
