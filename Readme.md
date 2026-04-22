@@ -1,6 +1,6 @@
 # JourneyAI
 
-An AI-powered career roadmap generator. Upload your resume, describe what you've been working on, and get a personalized next step + learning roadmap.
+An AI-powered career roadmap generator. Upload your resume, describe what you've been working on, and get a personalized next step + learning roadmaps.
 
 ## What it does
 - Analyzes your resume + recent work combined
